@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import apiClient from "@/lib/api-client";
+import { useNavigate } from "react-router";
 
 const formSchema = z.object({
   username: z
@@ -38,6 +39,7 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const navigate = useNavigate();
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,8 +51,8 @@ export function LoginForm({
   const onSubmit = async (body: FormSchema) => {
     try {
       const {data} = await apiClient.post("/auth/login", body);
-      localStorage.setItem("token",data?.data?.token);
-      // navigate to home page
+      sessionStorage.setItem("token",data?.data?.token);
+      navigate("/");
     } catch (error) {
       console.error(error);
     }

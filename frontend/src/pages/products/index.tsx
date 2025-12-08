@@ -1,8 +1,10 @@
-import React from 'react'
+import ViewProducts from '@/components/products/viewProducts'
 
 function Products() {
   return (
-    <div>Products</div>
+    <div className="container mx-auto p-6">
+      <ViewProducts />
+    </div>
   )
 }
 
