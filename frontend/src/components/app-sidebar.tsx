@@ -8,7 +8,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
   } from "@/components/ui/sidebar"
-  import { Home, Link, Package, ShoppingCart } from "lucide-react"
+  import { Home, Package, ShoppingCart } from "lucide-react"
   
   export function AppSidebar() {
     const items = [
