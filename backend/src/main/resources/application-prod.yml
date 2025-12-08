@@ -1,0 +1,48 @@
+# Production Profile - PostgreSQL Database
+spring:
+  # PostgreSQL Database Configuration
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/erp_pos}
+    driver-class-name: org.postgresql.Driver
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    
+    # HikariCP Connection Pool Configuration
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      pool-name: ErpPosHikariCP
+      max-lifetime: 1200000
+      connection-timeout: 30000
+      leak-detection-threshold: 60000
+
+  # JPA Configuration for PostgreSQL
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${DDL_AUTO:none}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+
+  # Flyway Configuration for Production
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    out-of-order: false
+    clean-disabled: true
+
+# Logging Configuration for Production
+logging:
+  level:
+    com.erp: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+
