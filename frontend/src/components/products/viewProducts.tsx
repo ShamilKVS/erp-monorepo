@@ -1,285 +1,468 @@
-import { useState, useEffect } from "react";
-import { useAxios } from "@/hooks/use-axios";
+"use client"
+
+import * as React from "react"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+  type ColumnDef,
+  type ColumnFiltersState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  type SortingState,
+  useReactTable,
+  type VisibilityState,
+} from "@tanstack/react-table"
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
 
-// TypeScript types for API response
-interface Product {
-  id: number;
-  sku: string;
-  name: string;
-  description: string;
-  price: number;
-  stockQuantity: number;
-  category: string;
-  imageUrl: string;
-  isActive: boolean;
-  inStock: boolean;
-  createdAt: string;
-  updatedAt: string;
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { TableCell, TableRow } from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
+import apiClient from "@/lib/api-client"
+
+export type Product = {
+  id: number
+  sku: string
+  name: string
+  description: string
+  price: number
+  stockQuantity: number
+  category: string
+  imageUrl: string
+  isActive: boolean
+  inStock: boolean
+  createdAt: string
+  updatedAt: string
 }
 
-interface Pageable {
-  content: Product[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
+type ProductsResponse = {
+  success: boolean
+  message: string
+  data: {
+    content: Product[]
+    page: number
+    size: number
+    totalElements: number
+    totalPages: number
+    first: boolean
+    last: boolean
+  }
+  timestamp: string
 }
 
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data: Pageable;
-  timestamp: string;
-}
+export const columns: ColumnDef<Product>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value: boolean) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value: boolean) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "sku",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          SKU
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => <div className="font-mono">{row.getValue("sku")}</div>,
+  },
+  {
+    accessorKey: "name",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+  },
+  {
+    accessorKey: "category",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Category
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => <div className="capitalize">{row.getValue("category")}</div>,
+  },
+  {
+    accessorKey: "price",
+    header: () => <div className="text-right">Price</div>,
+    cell: ({ row }) => {
+      const price = parseFloat(row.getValue("price"))
 
-type SortDirection = "asc" | "desc";
-type SortField = "name" | "price" | "sku" | "category" | "createdAt";
+      // Format the amount as a dollar amount
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(price)
 
-export function ViewProducts() {
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);``
-  const [sortBy, setSortBy] = useState<SortField>("name");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+      return <div className="text-right font-medium">{formatted}</div>
+    },
+  },
+  {
+    accessorKey: "stockQuantity",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="text-right"
+        >
+          Stock
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => {
+      const quantity = row.getValue("stockQuantity") as number
+      return (
+        <div className={`text-right ${quantity === 0 ? "text-red-500 font-semibold" : ""}`}>
+          {quantity}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: "inStock",
+    header: "In Stock",
+    cell: ({ row }) => {
+      const inStock = row.getValue("inStock") as boolean
+      return (
+        <div className={inStock ? "text-green-600" : "text-red-600"}>
+          {inStock ? "Yes" : "No"}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: "isActive",
+    header: "Active",
+    cell: ({ row }) => {
+      const isActive = row.getValue("isActive") as boolean
+      return (
+        <div className={isActive ? "text-green-600" : "text-gray-400"}>
+          {isActive ? "Active" : "Inactive"}
+        </div>
+      )
+    },
+  },
+  {
+    id: "actions",
+    enableHiding: false,
+    cell: ({ row }) => {
+      const product = row.original
 
-  const { data, loading, error, execute } = useAxios<ApiResponse>({
-    url: `/products?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`,
-    method: "GET",
-    immediate: false,
-  });
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(product.sku)}
+            >
+              Copy SKU
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>View details</DropdownMenuItem>
+            <DropdownMenuItem>Edit product</DropdownMenuItem>
+            <DropdownMenuItem>Delete product</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  },
+]
 
-  useEffect(() => {
-    execute();
-  }, [page, size, sortBy, sortDir]);
+export default function ViewProducts() {
+  const [products, setProducts] = React.useState<Product[]>([])
+  const [loading, setLoading] = React.useState<boolean>(true)
+  const [error, setError] = React.useState<string | null>(null)
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  )
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = React.useState({})
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+  const [paginationInfo, setPaginationInfo] = React.useState({
+    totalElements: 0,
+    totalPages: 0,
+    first: true,
+    last: true,
+  })
 
-  const handleSort = (field: SortField) => {
-    if (sortBy === field) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortDir("asc");
+  React.useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Build query parameters dynamically
+        const params = new URLSearchParams()
+        params.append("page", pagination.pageIndex.toString())
+        params.append("size", pagination.pageSize.toString())
+        
+        // Handle sorting
+        if (sorting.length > 0) {
+          const sort = sorting[0]
+          const columnId = sort.id
+          // Map column IDs to API field names (convert camelCase to camelCase or handle special cases)
+          const sortBy = columnId === "stockQuantity" ? "stockQuantity" : 
+                        columnId === "isActive" ? "isActive" :
+                        columnId === "inStock" ? "inStock" :
+                        columnId
+          params.append("sortBy", sortBy)
+          params.append("sortDir", sort.desc ? "desc" : "asc")
+        } else {
+          // Default sorting if none specified
+          params.append("sortBy", "name")
+          params.append("sortDir", "asc")
+        }
+        
+        const response = await apiClient.get<ProductsResponse>(
+          `/products?${params.toString()}`
+        )
+        
+        if (response.data.success && response.data.data) {
+          setProducts(response.data.data.content || [])
+          setPaginationInfo({
+            totalElements: response.data.data.totalElements,
+            totalPages: response.data.data.totalPages,
+            first: response.data.data.first,
+            last: response.data.data.last,
+          })
+        } else {
+          setError(response.data.message || "Failed to fetch products")
+        }
+      } catch (err: any) {
+        setError(
+          err.response?.data?.message || 
+          err.message || 
+          "An error occurred while fetching products"
+        )
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
     }
-    setPage(0); // Reset to first page when sorting changes
-  };
 
-  const handlePreviousPage = () => {
-    if (data?.data && !data.data.first) {
-      setPage((prev) => prev - 1);
-    }
-  };
+    fetchProducts()
+  }, [pagination.pageIndex, pagination.pageSize, sorting])
 
-  const handleNextPage = () => {
-    if (data?.data && !data.data.last) {
-      setPage((prev) => prev + 1);
-    }
-  };
+  const table = useReactTable({
+    data: products,
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    manualPagination: true,
+    pageCount: paginationInfo.totalPages,
+    onPaginationChange: setPagination,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+      pagination,
+    },
+  })
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
-    const isActive = sortBy === field;
+  if (loading) {
     return (
-      <button
-        onClick={() => handleSort(field)}
-        className="flex items-center gap-1 hover:text-primary transition-colors"
-      >
-        {children}
-        {isActive && (
-          <span className="text-xs">
-            {sortDir === "asc" ? "↑" : "↓"}
-          </span>
-        )}
-      </button>
-    );
-  };
-
-  if (loading && !data) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="w-full">
+        <div className="flex items-center py-4">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="ml-auto h-10 w-32" />
+        </div>
+        <div className="overflow-hidden rounded-md border">
+          <div className="space-y-2 p-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
-    );
+    )
   }
 
   if (error) {
     return (
-      <div className="p-4 border border-destructive rounded-md bg-destructive/10">
-        <p className="text-destructive">Error loading products: {String(error)}</p>
-        <Button onClick={execute} variant="outline" className="mt-2">
-          Retry
-        </Button>
+      <div className="w-full">
+        <div className="rounded-md border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">Error: {error}</p>
+        </div>
       </div>
-    );
+    )
   }
 
-  const products = data?.data?.content || [];
-  const pagination = data?.data;
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Products</h2>
-        {pagination && (
-          <div className="text-sm text-muted-foreground">
-            Showing {pagination.page * pagination.size + 1} to{" "}
-            {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of{" "}
-            {pagination.totalElements} products
-          </div>
-        )}
+    <div className="w-full">
+      <div className="flex items-center py-4">
+        <Input
+          placeholder="Filter by name or SKU..."
+          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+            table.getColumn("name")?.setFilterValue(event.target.value)
+          }
+          className="max-w-sm"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              Columns <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table
+              .getAllColumns()
+              .filter((column: any) => column.getCanHide())
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value: boolean) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                )
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                <SortButton field="sku">SKU</SortButton>
-              </TableHead>
-              <TableHead>
-                <SortButton field="name">Name</SortButton>
-              </TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>
-                <SortButton field="category">Category</SortButton>
-              </TableHead>
-              <TableHead>
-                <SortButton field="price">Price</SortButton>
-              </TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
-                <SortButton field="createdAt">Created</SortButton>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: size }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
+      <div className="overflow-hidden rounded-md border">
+        <table>
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <th key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </th>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </thead>
+            <tbody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
-            ) : products.length === 0 ? (
+            ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  No products found
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
                 </TableCell>
               </TableRow>
-            ) : (
-              products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-mono text-sm">{product.sku}</TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="max-w-xs truncate" title={product.description}>
-                    {product.description}
-                  </TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>{formatCurrency(product.price)}</TableCell>
-                  <TableCell>
-                    <span
-                      className={
-                        product.inStock
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
-                      }
-                    >
-                      {product.stockQuantity}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        product.isActive
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-                      }`}
-                    >
-                      {product.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(product.createdAt)}
-                  </TableCell>
-                </TableRow>
-              ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
-
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePreviousPage}
-              disabled={pagination.first || loading}
-            >
-              Previous
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              Page {pagination.page + 1} of {pagination.totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNextPage}
-              disabled={pagination.last || loading}
-            >
-              Next
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Items per page:</span>
-            <select
-              value={size}
-              onChange={(e) => {
-                setSize(Number(e.target.value));
-                setPage(0);
-              }}
-              className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
-              disabled={loading}
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="text-muted-foreground flex-1 text-sm">
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {paginationInfo.totalElements} row(s) selected. (Page{" "}
+          {pagination.pageIndex + 1} of {paginationInfo.totalPages || 1})
         </div>
-      )}
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={paginationInfo.first || pagination.pageIndex === 0}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={paginationInfo.last}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
-
-export default ViewProducts;
