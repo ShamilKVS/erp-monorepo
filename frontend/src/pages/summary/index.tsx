@@ -16,8 +16,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// Removed FilterType - only using date range now
-
 type DailySummary = {
   date: string
   salesCount: number
