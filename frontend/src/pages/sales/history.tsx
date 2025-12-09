@@ -383,7 +383,7 @@ function SalesHistoryHeader({
         variant="ghost"
         size="icon"
         className="mr-2"
-        onClick={() => navigate("/sales")}
+        onClick={() => navigate(-1)}
       >
         <ArrowLeft className="h-4 w-4" />
         <span className="sr-only">Back to Sales</span>
@@ -547,61 +547,57 @@ function SalesHistory() {
 
   return (
     <>
-      <div className="flex h-full w-full flex-col">
+      <div className="flex flex-col h-full w-full">
         <SalesHistoryHeader globalFilter={globalFilter} onFilterChange={setGlobalFilter} />
-        <div className="flex-1 overflow-auto w-full">
-          <div className="h-full w-full overflow-hidden border-b">
-            <div className="h-full w-full overflow-auto">
-              <Table className="w-full">
-                <thead className="sticky top-0 bg-background z-10">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
-                        return (
-                          <TableHead key={header.id} className="bg-background">
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                          </TableHead>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </thead>
-                <tbody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
+        <div className="flex-1 overflow-auto w-full border-b">
+          <Table className="w-full">
+            <thead className="sticky top-0 bg-background z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} className="bg-background">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
                             )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
-                        No sales found.
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
-                    </TableRow>
-                  )}
-                </tbody>
-              </Table>
-            </div>
-          </div>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No sales found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </tbody>
+          </Table>
         </div>
         <div className="flex items-center justify-between space-x-4 border-t bg-background px-6 py-4">
           <div className="text-muted-foreground text-sm whitespace-nowrap">

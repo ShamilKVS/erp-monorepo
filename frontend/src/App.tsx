@@ -10,7 +10,7 @@ export default function Layout() {
         <div className="flex items-center border-b px-4 py-2">
           <SidebarTrigger />
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-auto">
           <Outlet />
         </div>
       </SidebarInset>

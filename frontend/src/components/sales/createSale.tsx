@@ -152,7 +152,7 @@ export function CreateSale({
               type="button"
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/sales")}
+              onClick={() => navigate(-1)}
               className="h-8 w-8"
             >
               <ArrowLeft className="h-4 w-4" />
