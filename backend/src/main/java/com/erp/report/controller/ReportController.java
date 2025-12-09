@@ -68,30 +68,5 @@ public class ReportController {
                 .body(pdfContent);
     }
 
-    @GetMapping("/today")
-    @Operation(summary = "Get today's sales summary", description = "Generate sales report for today")
-    public ResponseEntity<ApiResponse<SalesReportSummary>> getTodaySalesReport() {
-        LocalDate today = LocalDate.now();
-        SalesReportSummary summary = reportService.generateSalesReport(today, today);
-        return ResponseEntity.ok(ApiResponse.success(summary));
-    }
-
-    @GetMapping("/this-week")
-    @Operation(summary = "Get this week's sales summary", description = "Generate sales report for current week")
-    public ResponseEntity<ApiResponse<SalesReportSummary>> getThisWeekSalesReport() {
-        LocalDate today = LocalDate.now();
-        LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
-        SalesReportSummary summary = reportService.generateSalesReport(startOfWeek, today);
-        return ResponseEntity.ok(ApiResponse.success(summary));
-    }
-
-    @GetMapping("/this-month")
-    @Operation(summary = "Get this month's sales summary", description = "Generate sales report for current month")
-    public ResponseEntity<ApiResponse<SalesReportSummary>> getThisMonthSalesReport() {
-        LocalDate today = LocalDate.now();
-        LocalDate startOfMonth = today.withDayOfMonth(1);
-        SalesReportSummary summary = reportService.generateSalesReport(startOfMonth, today);
-        return ResponseEntity.ok(ApiResponse.success(summary));
-    }
 }
 
