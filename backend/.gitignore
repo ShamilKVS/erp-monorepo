@@ -1,0 +1,20 @@
+    # Logs
+    logs/
+    target/*
+    .mvn/
+    .idea/
+    .gradle/
+    .classpath
+    .project
+    .settings/
+    .factorypath
+    .metadata/
+    .history/
+    .recommenders/
+    .launches/
+    .server/
+    .springBeans/
+    .vscode/
+    .DS_Store
+    .gitattributes
+    .gitmodules
