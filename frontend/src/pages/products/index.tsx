@@ -2,7 +2,7 @@ import ViewProducts from '@/components/products/viewProducts'
 
 function Products() {
   return (
-    <div className="container mx-auto p-6">
+    <div className="h-full w-full overflow-hidden">
       <ViewProducts />
     </div>
   )

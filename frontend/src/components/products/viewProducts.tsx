@@ -11,13 +11,12 @@ import {
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -25,9 +24,19 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { TableCell, TableRow } from "@/components/ui/table"
+import { Table, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import apiClient from "@/lib/api-client"
+import { useNavigate } from "react-router"
 
 export type Product = {
   id: number
@@ -146,14 +155,16 @@ export const columns: ColumnDef<Product>[] = [
     accessorKey: "stockQuantity",
     header: ({ column }) => {
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-right"
-        >
-          Stock
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="text-right">
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="h-auto p-0 font-normal hover:bg-transparent"
+          >
+            Stock
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       )
     },
     cell: ({ row }) => {
@@ -178,23 +189,9 @@ export const columns: ColumnDef<Product>[] = [
     },
   },
   {
-    accessorKey: "isActive",
-    header: "Active",
-    cell: ({ row }) => {
-      const isActive = row.getValue("isActive") as boolean
-      return (
-        <div className={isActive ? "text-green-600" : "text-gray-400"}>
-          {isActive ? "Active" : "Inactive"}
-        </div>
-      )
-    },
-  },
-  {
     id: "actions",
     enableHiding: false,
-    cell: ({ row }) => {
-      const product = row.original
-
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -205,11 +202,6 @@ export const columns: ColumnDef<Product>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(product.sku)}
-            >
-              Copy SKU
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>View details</DropdownMenuItem>
             <DropdownMenuItem>Edit product</DropdownMenuItem>
@@ -222,6 +214,7 @@ export const columns: ColumnDef<Product>[] = [
 ]
 
 export default function ViewProducts() {
+  const navigate = useNavigate()
   const [products, setProducts] = React.useState<Product[]>([])
   const [loading, setLoading] = React.useState<boolean>(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -260,7 +253,6 @@ export default function ViewProducts() {
           const columnId = sort.id
           // Map column IDs to API field names (convert camelCase to camelCase or handle special cases)
           const sortBy = columnId === "stockQuantity" ? "stockQuantity" : 
-                        columnId === "isActive" ? "isActive" :
                         columnId === "inStock" ? "inStock" :
                         columnId
           params.append("sortBy", sortBy)
@@ -324,12 +316,12 @@ export default function ViewProducts() {
 
   if (loading) {
     return (
-      <div className="w-full">
-        <div className="flex items-center py-4">
+      <div className="flex h-full w-full flex-col">
+        <div className="flex items-center border-b px-6 py-4">
           <Skeleton className="h-10 w-64" />
           <Skeleton className="ml-auto h-10 w-32" />
         </div>
-        <div className="overflow-hidden rounded-md border">
+        <div className="flex-1 overflow-hidden rounded-md border m-6">
           <div className="space-y-2 p-4">
             {[...Array(5)].map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
@@ -342,7 +334,7 @@ export default function ViewProducts() {
 
   if (error) {
     return (
-      <div className="w-full">
+      <div className="flex h-full w-full items-center justify-center">
         <div className="rounded-md border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-800">Error: {error}</p>
         </div>
@@ -351,8 +343,8 @@ export default function ViewProducts() {
   }
 
   return (
-    <div className="w-full">
-      <div className="flex items-center py-4">
+    <div className="flex h-full w-full flex-col">
+      <div className="flex items-center border-b px-6 py-4">
         <Input
           placeholder="Filter by name or SKU..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -361,106 +353,162 @@ export default function ViewProducts() {
           }
           className="max-w-sm"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column: any) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value: boolean) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button className="ml-auto" onClick={() => navigate("/products/create")}>Create Product</Button>
       </div>
-      <div className="overflow-hidden rounded-md border">
-        <table>
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <th key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+      <div className="flex-1 overflow-auto w-full">
+        <div className="h-full w-full overflow-hidden border-b">
+          <div className="h-full w-full overflow-auto">
+            <Table className="w-full">
+              <thead className="sticky top-0 bg-background z-10">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead key={header.id} className="bg-background">
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      )
+                    })}
+                  </TableRow>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
                           )}
-                    </th>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </thead>
-            <tbody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      No results.
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {paginationInfo.totalElements} row(s) selected. (Page{" "}
-          {pagination.pageIndex + 1} of {paginationInfo.totalPages || 1})
+                  </TableRow>
+                )}
+              </tbody>
+            </Table>
+          </div>
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={paginationInfo.first || pagination.pageIndex === 0}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={paginationInfo.last}
-          >
-            Next
-          </Button>
+      </div>
+      <div className="flex items-center justify-between space-x-4 border-t bg-background px-6 py-4">
+        <div className="text-muted-foreground text-sm whitespace-nowrap">
+          Showing {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {paginationInfo.totalElements} row(s) selected
+        </div>
+        {paginationInfo.totalPages > 1 && (
+          <Pagination className="w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (!paginationInfo.first && pagination.pageIndex > 0) {
+                      table.previousPage()
+                    }
+                  }}
+                  className={
+                    paginationInfo.first || pagination.pageIndex === 0
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+              {(() => {
+                const currentPage = pagination.pageIndex + 1
+                const totalPages = paginationInfo.totalPages || 1
+                const pages: (number | "ellipsis")[] = []
+
+                if (totalPages <= 7) {
+                  // Show all pages if 7 or fewer
+                  for (let i = 1; i <= totalPages; i++) {
+                    pages.push(i)
+                  }
+                } else {
+                  // Always show first page
+                  pages.push(1)
+
+                  if (currentPage <= 3) {
+                    // Near the start: 1, 2, 3, 4, ..., last
+                    for (let i = 2; i <= 4; i++) {
+                      pages.push(i)
+                    }
+                    pages.push("ellipsis")
+                    pages.push(totalPages)
+                  } else if (currentPage >= totalPages - 2) {
+                    // Near the end: 1, ..., n-3, n-2, n-1, n
+                    pages.push("ellipsis")
+                    for (let i = totalPages - 3; i <= totalPages; i++) {
+                      pages.push(i)
+                    }
+                  } else {
+                    // In the middle: 1, ..., current-1, current, current+1, ..., last
+                    pages.push("ellipsis")
+                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                      pages.push(i)
+                    }
+                    pages.push("ellipsis")
+                    pages.push(totalPages)
+                  }
+                }
+
+                return pages.map((page, index) => (
+                  <PaginationItem key={`${page}-${index}`}>
+                    {page === "ellipsis" ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        onClick={(e) => {
+                          e.preventDefault()
+                          table.setPageIndex(page - 1)
+                        }}
+                        isActive={page === currentPage}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))
+              })()}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (!paginationInfo.last) {
+                      table.nextPage()
+                    }
+                  }}
+                  className={
+                    paginationInfo.last
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+        <div className="text-muted-foreground text-sm whitespace-nowrap">
+          Page {pagination.pageIndex + 1} of {paginationInfo.totalPages || 1}
         </div>
       </div>
     </div>
