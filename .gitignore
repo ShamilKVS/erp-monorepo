@@ -1,0 +1,21 @@
+# IDE - JetBrains (project-wide)
+.idea/
+
+# OS (project-wide)
+.DS_Store
+Thumbs.db
+
+# Environment variables (project-wide)
+.env
+.env.local
+.env.*.local
+
+# Temporary files (project-wide)
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Note: Backend and frontend specific ignores are in their respective .gitignore files
+
