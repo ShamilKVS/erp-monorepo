@@ -11,17 +11,9 @@ import {
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, Edit, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Table, TableCell, TableHead, TableRow } from "@/components/ui/table"
@@ -37,6 +29,18 @@ import {
 } from "@/components/ui/pagination"
 import apiClient from "@/lib/api-client"
 import { useNavigate } from "react-router"
+import { toast } from "sonner"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from "@/components/ui/alert-dialog"
 
 export type Product = {
   id: number
@@ -68,7 +72,10 @@ type ProductsResponse = {
   timestamp: string
 }
 
-export const columns: ColumnDef<Product>[] = [
+const createColumns = (
+  navigate: (path: string) => void,
+  fetchProducts: () => Promise<void>
+): ColumnDef<Product>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -191,27 +198,59 @@ export const columns: ColumnDef<Product>[] = [
   {
     id: "actions",
     enableHiding: false,
-    cell: () => {
+    header: "Actions",
+    cell: ({ row }) => {
+      const product = row.original
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View details</DropdownMenuItem>
-            <DropdownMenuItem>Edit product</DropdownMenuItem>
-            <DropdownMenuItem>Delete product</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/products/edit/${product.id}`)}
+            className="h-8 w-8 p-0"
+          >
+            <Edit className="h-4 w-4" />
+            <span className="sr-only">Edit product</span>
+          </Button>
+          <AlertDialogDeleteProduct productId={product.id} fetchProducts={fetchProducts} />
+        </div>
       )
     },
   },
 ]
+
+export function AlertDialogDeleteProduct({ productId, fetchProducts }: { productId: number, fetchProducts: () => Promise<void> }) {
+    const [showAlertDialog, setShowAlertDialog] = React.useState(false)
+    const handleDelete = async () => {
+        await apiClient.delete(`/products/${productId}`)
+        // Refresh the product list
+        fetchProducts()
+        toast.success("Product deleted successfully")
+        setShowAlertDialog(false)
+    }   
+    return (
+      <AlertDialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
+        <AlertDialogTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete product</span>
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Do you want to delete this product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product and remove it from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )
+  }
 
 export default function ViewProducts() {
   const navigate = useNavigate()
@@ -236,62 +275,83 @@ export default function ViewProducts() {
     last: true,
   })
 
-  React.useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        // Build query parameters dynamically
-        const params = new URLSearchParams()
-        params.append("page", pagination.pageIndex.toString())
-        params.append("size", pagination.pageSize.toString())
-        
-        // Handle sorting
-        if (sorting.length > 0) {
-          const sort = sorting[0]
-          const columnId = sort.id
-          // Map column IDs to API field names (convert camelCase to camelCase or handle special cases)
-          const sortBy = columnId === "stockQuantity" ? "stockQuantity" : 
-                        columnId === "inStock" ? "inStock" :
-                        columnId
-          params.append("sortBy", sortBy)
-          params.append("sortDir", sort.desc ? "desc" : "asc")
-        } else {
-          // Default sorting if none specified
-          params.append("sortBy", "name")
-          params.append("sortDir", "asc")
-        }
-        
-        const response = await apiClient.get<ProductsResponse>(
-          `/products?${params.toString()}`
-        )
-        
-        if (response.data.success && response.data.data) {
-          setProducts(response.data.data.content || [])
-          setPaginationInfo({
-            totalElements: response.data.data.totalElements,
-            totalPages: response.data.data.totalPages,
-            first: response.data.data.first,
-            last: response.data.data.last,
-          })
-        } else {
-          setError(response.data.message || "Failed to fetch products")
-        }
-      } catch (err: any) {
-        setError(
-          err.response?.data?.message || 
-          err.message || 
-          "An error occurred while fetching products"
-        )
-        setProducts([])
-      } finally {
-        setLoading(false)
+  const fetchProducts = React.useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Build query parameters dynamically
+      const params = new URLSearchParams()
+      params.append("page", pagination.pageIndex.toString())
+      params.append("size", pagination.pageSize.toString())
+      
+      // Handle sorting
+      if (sorting.length > 0) {
+        const sort = sorting[0]
+        const columnId = sort.id
+        // Map column IDs to API field names (convert camelCase to camelCase or handle special cases)
+        const sortBy = columnId === "stockQuantity" ? "stockQuantity" : 
+                      columnId === "inStock" ? "inStock" :
+                      columnId
+        params.append("sortBy", sortBy)
+        params.append("sortDir", sort.desc ? "desc" : "asc")
+      } else {
+        // Default sorting if none specified
+        params.append("sortBy", "name")
+        params.append("sortDir", "asc")
       }
+      
+      const response = await apiClient.get<ProductsResponse>(
+        `/products?${params.toString()}`
+      )
+      
+      if (response.data.success && response.data.data) {
+        setProducts(response.data.data.content || [])
+        setPaginationInfo({
+          totalElements: response.data.data.totalElements,
+          totalPages: response.data.data.totalPages,
+          first: response.data.data.first,
+          last: response.data.data.last,
+        })
+      } else {
+        setError(response.data.message || "Failed to fetch products")
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || 
+        err.message || 
+        "An error occurred while fetching products"
+      )
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
+  }, [pagination.pageIndex, pagination.pageSize, sorting])
+
+  React.useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
+  const handleDelete = React.useCallback(async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) {
+      return
     }
 
-    fetchProducts()
-  }, [pagination.pageIndex, pagination.pageSize, sorting])
+    try {
+      await apiClient.delete(`/products/${id}`)
+      // Refresh the product list
+      await fetchProducts()
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || "Failed to delete product"
+      setError(errorMessage)
+      toast.error(errorMessage)
+    }
+  }, [fetchProducts])
+
+  const columns = React.useMemo(
+    () => createColumns(navigate, fetchProducts),
+    [navigate, fetchProducts]
+  )
 
   const table = useReactTable({
     data: products,
