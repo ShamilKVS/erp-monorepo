@@ -1,37 +1,32 @@
-# Build stage
-FROM node:20-alpine AS build
+# Build stage using Bun
+FROM jarredsumner/bun:latest AS build
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lock* package-lock.json* yarn.lock* pnpm-lock.yaml* ./
+COPY package.json bun.lockb ./
 
-# Install dependencies
-RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+# Install dependencies with Bun
+RUN bun install
 
-# Copy source code and configuration files
+# Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build React app (assuming you have a build script)
+RUN bun run build
 
-# Production stage
+# Production stage: serve with Nginx
 FROM nginx:alpine
 
-WORKDIR /usr/share/nginx/html
+# Remove default nginx static files
+RUN rm -rf /usr/share/nginx/html/*
 
-# Remove default nginx static assets
-RUN rm -rf ./*
-
-# Copy built assets from build stage
-COPY --from=build /app/dist .
+# Copy built React app
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
 EXPOSE 80
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
-
