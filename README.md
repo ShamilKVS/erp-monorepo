@@ -44,11 +44,11 @@ Check out the live demo of the application:
 
 | Login | Dashboard |
 |:-----:|:---------:|
-| ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| ![Login](docs/screenshots/login.jpg) | ![Dashboard](docs/screenshots/dashboard.jpg) |
 
 | Create Sale | Sales History |
 |:-----------:|:-------------:|
-| ![Create Sale](docs/screenshots/create-sale.png) | ![Sales History](docs/screenshots/sales-history.png) |
+| ![Create Sale](docs/screenshots/sales.jpg) | ![Sales History](docs/screenshots/salesHistory.jpg) |
 
 ---
 
