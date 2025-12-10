@@ -2,7 +2,7 @@
 spring:
   # PostgreSQL Database Configuration
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/erp_pos}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/erp_test}
     driver-class-name: org.postgresql.Driver
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:postgres}

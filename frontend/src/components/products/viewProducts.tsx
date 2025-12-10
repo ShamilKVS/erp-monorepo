@@ -332,22 +332,6 @@ export default function ViewProducts() {
     fetchProducts()
   }, [fetchProducts])
 
-  const handleDelete = React.useCallback(async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) {
-      return
-    }
-
-    try {
-      await apiClient.delete(`/products/${id}`)
-      // Refresh the product list
-      await fetchProducts()
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || "Failed to delete product"
-      setError(errorMessage)
-      toast.error(errorMessage)
-    }
-  }, [fetchProducts])
-
   const columns = React.useMemo(
     () => createColumns(navigate, fetchProducts),
     [navigate, fetchProducts]

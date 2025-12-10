@@ -34,6 +34,17 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
 
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+
 # Default Logging Configuration (overridden by profiles)
 logging:
   level:

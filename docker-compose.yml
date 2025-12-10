@@ -1,0 +1,88 @@
+# ERP Monorepo - Docker Compose Configuration
+# This file orchestrates the PostgreSQL database, Spring Boot backend, and React frontend services
+
+version: '3.8'
+
+services:
+  # --- 1. POSTGRESQL DATABASE SERVICE ---
+  db:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: erp_test
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Map to 5433 on host to avoid conflicts with local PostgreSQL
+    networks:
+      - erp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d erp_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --- 2. SPRING BOOT BACKEND SERVICE ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: spring-boot-app
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/erp_test
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+      # JWT Configuration (use secure values in production)
+      JWT_SECRET: dGhpc0lzQVNlY3VyZUtleUZvckpXVFRva2VuR2VuZXJhdGlvbjI1NmJpdHM=
+      JWT_EXPIRATION: 86400000
+    networks:
+      - erp-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # --- 3. REACT FRONTEND SERVICE (NGINX) ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: web-frontend
+    restart: always
+    ports:
+      - "3000:80"  # Frontend runs on nginx port 80, mapped to host port 3000
+    depends_on:
+      - backend  # Start after backend container is created (not waiting for health)
+    networks:
+      - erp-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Named volumes for data persistence
+volumes:
+  postgres_data:
+    driver: local
+
+# Custom network for service communication
+networks:
+  erp-network:
+    driver: bridge
