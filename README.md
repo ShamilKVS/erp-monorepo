@@ -27,6 +27,7 @@ Check out the live demo of the application:
 
 ## 📋 Table of Contents
 
+- [Screenshots](#-screenshots)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Prerequisites](#-prerequisites)
@@ -36,6 +37,18 @@ Check out the live demo of the application:
 - [Docker Commands](#-docker-commands)
 - [Environment Variables](#-environment-variables)
 - [Database](#-database)
+
+---
+
+## 📸 Screenshots
+
+| Login | Dashboard |
+|:-----:|:---------:|
+| ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+| Create Sale | Sales History |
+|:-----------:|:-------------:|
+| ![Create Sale](docs/screenshots/create-sale.png) | ![Sales History](docs/screenshots/sales-history.png) |
 
 ---
 
@@ -205,16 +218,16 @@ docker-compose restart
 
 ### Backend Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SPRING_PROFILES_ACTIVE` | `prod` | Active Spring profile |
-| `SPRING_DATASOURCE_URL` | - | Database JDBC URL |
-| `SPRING_DATASOURCE_USERNAME` | `postgres` | Database username |
-| `SPRING_DATASOURCE_PASSWORD` | `postgres` | Database password |
-| `JWT_SECRET` | (base64 encoded) | JWT signing secret |
-| `JWT_EXPIRATION` | `86400000` | JWT expiration (ms) |
-| `SERVER_PORT` | `8080` | Server port |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Allowed CORS origins |
+| Variable | Default                | Description |
+|----------|------------------------|-------------|
+| `SPRING_PROFILES_ACTIVE` | `prod`                 | Active Spring profile |
+| `SPRING_DATASOURCE_URL` | -                      | Database JDBC URL |
+| `SPRING_DATASOURCE_USERNAME` | -                      | Database username |
+| `SPRING_DATASOURCE_PASSWORD` | -                      | Database password |
+| `JWT_SECRET` | (base64 encoded)       | JWT signing secret |
+| `JWT_EXPIRATION` | `86400000`             | JWT expiration (ms) |
+| `SERVER_PORT` | `8080`                 | Server port |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:300` | Allowed CORS origins |
 
 ### Frontend Environment Variables
 
@@ -223,18 +236,6 @@ docker-compose restart
 | `VITE_API_BASE_URL` | `/api` | Backend API base URL |
 
 ---
-
-## 🗄 Database
-
-### Connection Details
-
-| Property | Value |
-|----------|-------|
-| Host | `localhost` |
-| Port | `5433` (Docker) / `5432` (Local) |
-| Database | `erp_test` |
-| Username | `postgres` |
-| Password | `postgres` |
 
 ### Database Migrations
 
