@@ -28,7 +28,6 @@ Check out the live demo of the application:
 ## 📋 Table of Contents
 
 - [Features](#-features)
-- [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
 - [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
@@ -131,11 +130,6 @@ For local development without Docker:
 3. **Run the application**
    ```bash
    ./mvnw spring-boot:run
-   ```
-
-4. **Run tests**
-   ```bash
-   ./mvnw test
    ```
 
 The backend will be available at `http://localhost:8080/api`
