@@ -2,9 +2,15 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import { toast } from 'sonner';
 
+// Normalize base URL - remove trailing slash to avoid double slashes
+const getBaseURL = (): string => {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+  return baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
+};
+
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: getBaseURL(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
