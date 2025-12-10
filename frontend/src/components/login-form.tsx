@@ -52,7 +52,7 @@ export function LoginForm({
     try {
       const {data} = await apiClient.post("/auth/login", body);
       sessionStorage.setItem("token",data?.data?.token);
-      navigate("/");
+      navigate("/home");
     } catch (error) {
       console.error(error);
     }
