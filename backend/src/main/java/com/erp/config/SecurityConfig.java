@@ -2,6 +2,7 @@ package com.erp.config;
 
 import com.erp.auth.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,6 +16,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Security configuration for the application.
@@ -27,13 +34,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource;
+
+    @Value("${cors.allowed-origins:http://localhost:5173,https://erp-monorepo-1.onrender.com}")
+    private String allowedOrigins;
 
     /**
      * Configures the security filter chain.
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -72,6 +81,42 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    /**
+     * CORS configuration source bean.
+     * Configures allowed origins, methods, and headers for cross-origin requests.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Parse allowed origins from configuration (comma-separated)
+        // Trim whitespace from each origin
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .toList();
+        configuration.setAllowedOrigins(origins);
+        
+        // Allow common HTTP methods
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        
+        // Allow common headers including Authorization
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        
+        // Allow credentials (cookies, authorization headers)
+        configuration.setAllowCredentials(true);
+        
+        // Expose Authorization header to client
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        
+        // Cache preflight response for 1 hour
+        configuration.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        
+        return source;
     }
 }
 
